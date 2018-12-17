@@ -2,9 +2,13 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpRequest
 from django.shortcuts import render, redirect, reverse
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
 from django.contrib.auth.decorators import login_required
+from django.views.generic import TemplateView
 from .models import Address, STATES_CHOICES
 from .forms import AddressForm
 
+
+class LoginView(TemplateView):
+    template_name = 'my_app/login.html'
 
 # Create your views here.
 def login(request: HttpRequest):
