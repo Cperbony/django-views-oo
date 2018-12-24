@@ -3,8 +3,9 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpRequest
 from django.shortcuts import render, redirect, reverse
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse_lazy
 from django.utils.decorators import method_decorator
-from django.views.generic import TemplateView, RedirectView, ListView, DetailView
+from django.views.generic import TemplateView, RedirectView, ListView, DetailView, CreateView, UpdateView, DeleteView
 from .models import Address, STATES_CHOICES
 from .forms import AddressForm
 
@@ -52,8 +53,8 @@ def login(request: HttpRequest):
     #     #logica quando o usuario está autenticado
 
 
-#302-Temporário
-#301-Permanente
+# 302-Temporário
+# 301-Permanente
 class LogoutRedirectView(RedirectView):
     url = '/login/'
 
@@ -89,73 +90,114 @@ class AddressDetailView(LoginRequiredMixin, DetailView):
     template_name = 'my_app/address/detail.html'
 
 
-@login_required(login_url='/login')
-def address_list(request):
-    addresses = Address.objects.all()
-    # print(list(addresses))
-    return render(request, 'my_app/address/list.html', {'addresses': addresses})
+class FormSubmittedInContextMixin:
+    def form_invalid(self, form):
+        return self.render_to_response(self.get_context_data(form=form, form_submitted=True))
 
 
-@login_required(login_url='/login')
-def address_create(request):
-    form_submitted = False
-    if request.method == 'GET':
-        # states = STATES_CHOICES
-        form = AddressForm()
-    else:
-        form_submitted = True
-        form = AddressForm(request.POST)
-        if form.is_valid():
-            address = form.save(commit=False)
-            address.user = request.user
-            address.save()
-            # Address.objects.create(
-            #     address=form.cleaned_data['address'],
-            #     address_complement=form.cleaned_data['address_complement'],
-            #     city=form.cleaned_data['city'],
-            #     state=form.cleaned_data['state'],
-            #     country=form.cleaned_data['country'],
-            #     user=request.user
-            # )
-            return redirect(reverse('my_app:address_list'))
+class AddressCreateView(LoginRequiredMixin, FormSubmittedInContextMixin, CreateView):
+    model = Address
+    # fields = ['address', 'address_complement', 'city', 'state', 'country']
+    form_class = AddressForm
+    template_name = 'my_app/address/create.html'
+    success_url = reverse_lazy('my_app:address_list')
 
-    return render(request, 'my_app/address/create.html', {'form': form, 'form_submitted': form_submitted})
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
 
 
-@login_required(login_url='/login')
-def address_update(request, id):
-    form_submitted = False
-    address = Address.objects.get(id=id)
-    if request.method == 'GET':
-        # states = STATES_CHOICES
-        # form = AddressForm(address.__dict__)
-        form = AddressForm(instance=address)
-    else:
-        form_submitted = True
-        form = AddressForm(request.POST, instance=address)
-        if form.is_valid():
-            form.save()
-            # address.address = request.POST.get('address')
-            # address.address_complement = request.POST.get('address_complement')
-            # address.city = request.POST.get('address_complement')
-            # address.state = request.POST.get('state')
-            # address.country = request.POST.get('address_complement')
-            # address.user = request.user
+class AddressUpdateView(LoginRequiredMixin, FormSubmittedInContextMixin, UpdateView):
+    model = Address
+    # fields = ['address', 'address_complement', 'city', 'state', 'country']
+    form_class = AddressForm
+    template_name = 'my_app/address/create.html'
+    success_url = reverse_lazy('my_app:address_list')
 
-            # address.save()
-            return redirect(reverse('my_app:address_list'))
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
 
-    return render(request, 'my_app/address/update.html',
-                  {'address': address, 'form': form, 'form_submitted': form_submitted})
+    def form_invalid(self, form):
+        return self.render_to_response(self.get_context_data(form=form, form_submitted=True))
 
 
-@login_required(login_url='/login')
-def address_destroy(request, id):
-    address = Address.objects.get(id=id)
-    if request.method == 'GET':
-        form = AddressForm(instance=address)
-    else:
-        address.delete()
-        return redirect(reverse('my_app:address_list'))
+class AddressDeleteView(LoginRequiredMixin, FormSubmittedInContextMixin, DeleteView):
+    model = Address
+    template_name = 'my_app/address/destroy.html'
+    success_url = reverse_lazy('my_app:address_list')
 
-    return render(request, 'my_app/address/destroy.html', {'address': address, 'form': form})
+
+
+
+# Curso Django Intermediário
+# @login_required(login_url='/login')
+# def address_list(request):
+#     addresses = Address.objects.all()
+#     # print(list(addresses))
+#     return render(request, 'my_app/address/list.html', {'addresses': addresses})
+#
+#
+# @login_required(login_url='/login')
+# def address_create(request):
+#     form_submitted = False
+#     if request.method == 'GET':
+#         # states = STATES_CHOICES
+#         form = AddressForm()
+#     else:
+#         form_submitted = True
+#         form = AddressForm(request.POST)
+#         if form.is_valid():
+#             address = form.save(commit=False)
+#             address.user = request.user
+#             address.save()
+#             # Address.objects.create(
+#             #     address=form.cleaned_data['address'],
+#             #     address_complement=form.cleaned_data['address_complement'],
+#             #     city=form.cleaned_data['city'],
+#             #     state=form.cleaned_data['state'],
+#             #     country=form.cleaned_data['country'],
+#             #     user=request.user
+#             # )
+#             return redirect(reverse('my_app:address_list'))
+#
+#     return render(request, 'my_app/address/create.html', {'form': form, 'form_submitted': form_submitted})
+#
+#
+# @login_required(login_url='/login')
+# def address_update(request, id):
+#     form_submitted = False
+#     address = Address.objects.get(id=id)
+#     if request.method == 'GET':
+#         # states = STATES_CHOICES
+#         # form = AddressForm(address.__dict__)
+#         form = AddressForm(instance=address)
+#     else:
+#         form_submitted = True
+#         form = AddressForm(request.POST, instance=address)
+#         if form.is_valid():
+#             form.save()
+#             # address.address = request.POST.get('address')
+#             # address.address_complement = request.POST.get('address_complement')
+#             # address.city = request.POST.get('address_complement')
+#             # address.state = request.POST.get('state')
+#             # address.country = request.POST.get('address_complement')
+#             # address.user = request.user
+#
+#             # address.save()
+#             return redirect(reverse('my_app:address_list'))
+#
+#     return render(request, 'my_app/address/update.html',
+#                   {'address': address, 'form': form, 'form_submitted': form_submitted})
+#
+#
+# @login_required(login_url='/login')
+# def address_destroy(request, id):
+#     address = Address.objects.get(id=id)
+#     if request.method == 'GET':
+#         form = AddressForm(instance=address)
+#     else:
+#         address.delete()
+#         return redirect(reverse('my_app:address_list'))
+#
+#     return render(request, 'my_app/address/destroy.html', {'address': address, 'form': form})

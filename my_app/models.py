@@ -3,6 +3,8 @@ from django.db import models
 
 # Create your models here.
 # CRUD - Create Retrieve Update Delete
+from django.urls import reverse
+
 STATES_CHOICES = (
     ('AC', 'Acre'),
     ('AL', 'Alagoas'),
@@ -48,6 +50,9 @@ class Address(models.Model):
     @property
     def address_complement_normalized(self):
         return '' if self.address_complement is None else self.address_complement
+
+    def get_absolute_url(self):
+        return reverse('my_app:address_detail', kwargs={'pk': self.pk})
 
     def __str__(self):
         return '%s, %s, %s' % (self.address, self.city, self.country)
