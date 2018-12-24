@@ -1,14 +1,32 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseRedirect, HttpRequest
 from django.shortcuts import render, redirect, reverse
 from django.contrib.auth import authenticate, login as django_login, logout as django_logout
 from django.contrib.auth.decorators import login_required
-from django.views.generic import TemplateView
+from django.utils.decorators import method_decorator
+from django.views.generic import TemplateView, RedirectView, ListView, DetailView
 from .models import Address, STATES_CHOICES
 from .forms import AddressForm
 
 
 class LoginView(TemplateView):
     template_name = 'my_app/login.html'
+
+    def post(self, request, *args, **kwargs):
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        user = authenticate(username=username, password=password)
+
+        if user:
+            django_login(request, user)
+            # next_param = request.GET.get('next')
+            # if next_param
+            # return HttpResponseRedirect('/home/')
+            return redirect('/home/')
+        message = 'Credenciais inválidas'
+        return self.render_to_response({'message': message})
+
 
 # Create your views here.
 def login(request: HttpRequest):
@@ -34,15 +52,41 @@ def login(request: HttpRequest):
     #     #logica quando o usuario está autenticado
 
 
-@login_required(login_url='/login')
-def logout(request):
-    django_logout(request)
-    return redirect('/login/')
+#302-Temporário
+#301-Permanente
+class LogoutRedirectView(RedirectView):
+    url = '/login/'
+
+    @method_decorator(login_required(login_url='/login'))
+    def get(self, request, *args, **kwargs):
+        django_logout(request)
+        return super().get(request, *args, **kwargs)
 
 
-@login_required(login_url='/login')
-def home(request):
-    return render(request, 'my_app/home.html')
+# @login_required(login_url='/login')
+# def logout(request):
+#     django_logout(request)
+#     return redirect('/login/')
+
+
+# @login_required(login_url='/login')
+# def home(request):
+#     return render(request, 'my_app/home.html')
+
+
+class HomeView(LoginRequiredMixin, TemplateView):
+    template_name = 'my_app/home.html'
+
+
+class AddressListView(LoginRequiredMixin, ListView):
+    model = Address
+    # queryset = Address.objects.filter()
+    template_name = 'my_app/address/list.html'
+
+
+class AddressDetailView(LoginRequiredMixin, DetailView):
+    model = Address
+    template_name = 'my_app/address/detail.html'
 
 
 @login_required(login_url='/login')
